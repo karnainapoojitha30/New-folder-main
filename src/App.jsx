@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { BookmarkProvider } from './context/BookmarkContext';
+import { LearningProvider } from './context/LearningContext';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -7,6 +9,8 @@ import { AppLayout, StudentDashboard, AdminDashboard } from './components/AppLay
 import ManageSubjects from './pages/admin/ManageSubjects';
 import StudentSubjects from './pages/student/StudentSubjects';
 import StudentAISummary from './pages/student/StudentAISummary';
+import StudentCategoryCourses from './pages/student/StudentCategoryCourses';
+import StudentBookmarks from './pages/student/StudentBookmarks';
 import LandingPage from './pages/LandingPage';
 import ComingSoon from './pages/ComingSoon';
 import Contact from './pages/Contact';
@@ -22,7 +26,9 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
+        <BookmarkProvider>
+          <LearningProvider>
+            <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
@@ -44,6 +50,8 @@ function App() {
             <Route path="student" element={<ProtectedRoute allowedRole="student"><StudentDashboard /></ProtectedRoute>} />
             <Route path="student/subjects" element={<ProtectedRoute allowedRole="student"><StudentSubjects /></ProtectedRoute>} />
             <Route path="student/ai-summary" element={<ProtectedRoute allowedRole="student"><StudentAISummary /></ProtectedRoute>} />
+            <Route path="student/category/:categoryTitle" element={<ProtectedRoute allowedRole="student"><StudentCategoryCourses /></ProtectedRoute>} />
+            <Route path="student/bookmarks" element={<ProtectedRoute allowedRole="student"><StudentBookmarks /></ProtectedRoute>} />
             <Route path="student/achievements" element={<div className="glass-panel p-6 m-4" style={{padding: '2rem'}}><h2>Leaderboard Coming Soon</h2></div>} />
 
             {/* Admin Routes */}
@@ -54,6 +62,8 @@ function App() {
             <Route path="admin/settings" element={<div className="glass-panel p-6 m-4" style={{padding: '2rem'}}><h2>Settings Coming Soon</h2></div>} />
           </Route>
         </Routes>
+          </LearningProvider>
+        </BookmarkProvider>
       </AuthProvider>
     </Router>
   );

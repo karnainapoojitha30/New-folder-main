@@ -1,8 +1,11 @@
 import { Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Users, LogOut, BookOpen, Brain, Award, Settings, Play, Clock, Code, Palette, Briefcase, LineChart, ChevronRight, ChevronLeft, Globe, Shield, Database, Smartphone, Terminal, Monitor, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, BookOpen, Brain, Award, Settings, Play, Clock, Code, Palette, Briefcase, LineChart, ChevronRight, ChevronLeft, Globe, Shield, Database, Smartphone, Terminal, Monitor, Sparkles, Bookmark, Heart, Trash2 } from 'lucide-react';
+import { useBookmarks } from '../context/BookmarkContext';
+import { useLearning } from '../context/LearningContext';
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { categories, careerPaths, getCategorySpecificCourses } from '../utils/mockData';
 
 const BannerCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -243,6 +246,7 @@ export function AppLayout() {
           <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>Main</div>
           
           <SidebarItem icon={LayoutDashboard} label="Dashboard" path={isAdmin ? "/admin" : "/student"} active={isActive(isAdmin ? "/admin" : "/student")} onClick={() => navigate(isAdmin ? "/admin" : "/student")} />
+          {!isAdmin && <SidebarItem icon={Bookmark} label="Bookmarks" path="/student/bookmarks" active={isActive("/student/bookmarks")} onClick={() => navigate("/student/bookmarks")} />}
           <SidebarItem icon={BookOpen} label={isAdmin ? "Manage Subjects" : "My Learning"} path={isAdmin ? "/admin/subjects" : "/student/subjects"} active={isActive(isAdmin ? "/admin/subjects" : "/student/subjects")} onClick={() => navigate(isAdmin ? "/admin/subjects" : "/student/subjects")} />
           <SidebarItem icon={Brain} label="AI Summarizer" path={isAdmin ? "/admin/ai-tools" : "/student/ai-summary"} active={isActive(isAdmin ? "/admin/ai-tools" : "/student/ai-summary")} onClick={() => navigate(isAdmin ? "/admin/ai-tools" : "/student/ai-summary")} />
           
@@ -295,6 +299,11 @@ export function AppLayout() {
 export function StudentDashboard() {
   const [sessionSeconds, setSessionSeconds] = useState(0);
   const [selectedPath, setSelectedPath] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [isRoadmapView, setIsRoadmapView] = useState(false);
+  const { toggleBookmark, isBookmarked } = useBookmarks();
+  const { enrolledCourses, removeCourse } = useLearning();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -305,7 +314,7 @@ export function StudentDashboard() {
 
   useEffect(() => {
     const mainContainer = document.querySelector('.main-content');
-    if (selectedPath) {
+    if (selectedPath || selectedCategory) {
       if (mainContainer) mainContainer.style.overflowY = 'hidden';
       document.body.style.overflow = 'hidden';
     } else {
@@ -317,7 +326,7 @@ export function StudentDashboard() {
       if (cleanupContainer) cleanupContainer.style.overflowY = 'auto';
       document.body.style.overflow = '';
     };
-  }, [selectedPath]);
+  }, [selectedPath, selectedCategory]);
 
   const formatTime = (totalSeconds) => {
     const h = Math.floor(totalSeconds / 3600);
@@ -325,45 +334,6 @@ export function StudentDashboard() {
     const s = totalSeconds % 60;
     return `${h > 0 ? h + 'h ' : ''}${m}m ${s}s`;
   };
-
-  const courses = [
-    { id: 1, title: 'Advanced React', progress: 75, color: 'var(--accent-primary)', duration: '12h', icon: Code },
-    { id: 2, title: 'Machine Learning Basics', progress: 30, color: 'var(--accent-success)', duration: '24h', icon: Brain },
-    { id: 3, title: 'UI/UX Principles', progress: 10, color: 'var(--accent-warning)', duration: '8h', icon: Palette },
-    { id: 4, title: 'Data Structures', progress: 0, color: '#8b5cf6', duration: '18h', icon: Database },
-    { id: 5, title: 'Cloud Computing Intro', progress: 0, color: '#ec4899', duration: '10h', icon: Globe },
-    { id: 6, title: 'Cybersecurity Fundamentals', progress: 0, color: '#f43f5e', duration: '15h', icon: Shield },
-    { id: 7, title: 'Mobile App Dev with React Native', progress: 0, color: '#14b8a6', duration: '20h', icon: Smartphone },
-    { id: 8, title: 'SQL & Database Architecture', progress: 0, color: '#f59e0b', duration: '11h', icon: Database },
-    { id: 9, title: 'Blockchain & Web3', progress: 0, color: '#6366f1', duration: '14h', icon: Monitor },
-    { id: 10, title: 'Ethical Hacking Intro', progress: 0, color: '#ef4444', duration: '9h', icon: Shield }
-  ];
-
-  const categories = [
-    { title: 'Development', icon: Code, count: 124, color: 'var(--accent-primary)' },
-    { title: 'Design', icon: Palette, count: 86, color: '#ec4899' },
-    { title: 'Business', icon: Briefcase, count: 42, color: 'var(--accent-warning)' },
-    { title: 'Data Science', icon: LineChart, count: 56, color: 'var(--accent-success)' },
-    { title: 'Marketing', icon: Users, count: 34, color: '#ef4444' },
-    { title: 'Security', icon: Shield, count: 28, color: '#f43f5e' },
-    { title: 'Databases', icon: Database, count: 45, color: '#f59e0b' },
-    { title: 'Mobile Apps', icon: Smartphone, count: 62, color: '#14b8a6' },
-    { title: 'DevOps', icon: Terminal, count: 39, color: '#6366f1' },
-    { title: 'IT & Hardware', icon: Monitor, count: 51, color: '#8b5cf6' }
-  ];
-
-  const careerPaths = [
-    { title: 'Frontend Developer', role: 'Software', jobs: '10k+ Openings', icon: Code, color: 'var(--accent-primary)', salary: '$80k - $120k', description: 'Specialists in building user interfaces and web applications using HTML, CSS, JavaScript, and modern frameworks like React.', skills: ['React', 'JavaScript', 'CSS/SASS', 'Web Performance'] },
-    { title: 'Data Scientist', role: 'Data', jobs: '5k+ Openings', icon: Brain, color: 'var(--accent-success)', salary: '$95k - $140k', description: 'Extract insights and knowledge from structured and unstructured data using algorithms and machine learning.', skills: ['Python', 'SQL', 'Machine Learning', 'Data Visualization'] },
-    { title: 'Product Manager', role: 'Management', jobs: '8k+ Openings', icon: Briefcase, color: 'var(--accent-warning)', salary: '$100k - $150k', description: 'Guide the success of a product and lead the cross-functional team responsible for improving it.', skills: ['Agile', 'Product Roadmapping', 'User Research', 'Data Analysis'] },
-    { title: 'UX Researcher', role: 'Design', jobs: '3k+ Openings', icon: Palette, color: '#ec4899', salary: '$85k - $130k', description: 'Systematically study target users to collect and analyze data that will help inform the product design process.', skills: ['Wireframing', 'User Testing', 'Figma', 'Prototyping'] },
-    { title: 'Cloud Architect', role: 'Infrastructure', jobs: '4k+ Openings', icon: Globe, color: '#8b5cf6', salary: '$120k - $160k', description: 'Oversee a company\'s cloud computing strategy, including cloud adoption plans, cloud application design, and management.', skills: ['AWS / GCP', 'Docker', 'Kubernetes', 'Networking'] },
-    { title: 'Cybersecurity Analyst', role: 'Security', jobs: '7k+ Openings', icon: Shield, color: '#f43f5e', salary: '$90k - $135k', description: 'Protect an organization\'s computer networks and systems by monitoring and responding to security breaches.', skills: ['Risk Assessment', 'Network Security', 'Cryptography', 'SIEM'] },
-    { title: 'Mobile Developer', role: 'Software', jobs: '6k+ Openings', icon: Smartphone, color: '#14b8a6', salary: '$85k - $130k', description: 'Design and build applications for mobile devices running iOS and Android operating systems.', skills: ['React Native', 'Swift', 'Kotlin', 'Mobile UI'] },
-    { title: 'Database Admin', role: 'Data', jobs: '2k+ Openings', icon: Database, color: '#f59e0b', salary: '$80k - $115k', description: 'Ensure that databases run efficiently and are secure from unauthorized access.', skills: ['SQL', 'Database Design', 'Performance Tuning', 'Backup Strategy'] },
-    { title: 'DevOps Engineer', role: 'Infrastructure', jobs: '5k+ Openings', icon: Terminal, color: '#6366f1', salary: '$105k - $145k', description: 'Introduce processes, tools, and methodologies to balance needs throughout the software development life cycle.', skills: ['CI/CD', 'Jenkins', 'Terraform', 'Linux'] },
-    { title: 'Digital Marketer', role: 'Marketing', jobs: '12k+ Openings', icon: LineChart, color: '#ef4444', salary: '$60k - $95k', description: 'Promote brands to connect with potential customers using the internet and other forms of digital communication.', skills: ['SEO', 'Google Analytics', 'Content Strategy', 'Social Media'] }
-  ];
 
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '3rem' }}>
@@ -396,13 +366,36 @@ export function StudentDashboard() {
         </div>
         
         <MultiItemCarousel>
-          {courses.map(course => (
+          {enrolledCourses.map(course => (
             <div key={course.id} className="carousel-item glass-panel" style={{ width: '300px', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
                {/* Subject Banner Image Area */}
                <div style={{ width: '100%', height: '130px', background: `linear-gradient(135deg, ${course.color}30, ${course.color}10)`, display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', borderBottom: '1px solid var(--glass-border)' }}>
                   <div style={{ position: 'absolute', top: '1rem', right: '1rem', backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 'var(--radius-full)', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#fff', fontSize: '0.75rem', fontWeight: 'bold', backdropFilter: 'blur(4px)' }}>
                      <Play size={12} fill="#fff" /> {course.duration}
                   </div>
+                  
+                  {/* Remove course button */}
+                  <button 
+                     onClick={(e) => { e.stopPropagation(); removeCourse(course.id); }}
+                     style={{ position: 'absolute', top: '3.5rem', right: '1rem', background: 'rgba(239, 68, 68, 0.2)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', color: '#ef4444' }}
+                     title="Remove from My Learning"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                  
+                  {/* Bookmark icon toggle */}
+                  <button 
+                     onClick={(e) => { e.stopPropagation(); toggleBookmark(course); }}
+                     style={{ position: 'absolute', top: '1rem', left: '1rem', background: 'transparent', border: 'none', cursor: 'pointer', zIndex: 10 }}
+                  >
+                    <Heart 
+                      size={20} 
+                      fill={isBookmarked(course.id) ? "var(--accent-primary)" : "none"} 
+                      color={isBookmarked(course.id) ? "var(--accent-primary)" : "var(--text-primary)"} 
+                      style={{ transition: 'all 0.3s' }}
+                    />
+                  </button>
+
                   <course.icon size={56} color={course.color} style={{ opacity: 0.9, filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }} />
                </div>
                
@@ -431,7 +424,7 @@ export function StudentDashboard() {
         <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Explore Categories</h2>
         <MultiItemCarousel>
           {categories.map((cat, i) => (
-             <div key={i} className="carousel-item glass-panel" style={{ width: '250px', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+             <div key={i} onClick={() => setSelectedCategory(cat)} className="carousel-item glass-panel" style={{ width: '250px', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
                 {/* Banner Header Image Area */}
                 <div style={{ width: '100%', height: '110px', background: `linear-gradient(135deg, ${cat.color}30, ${cat.color}10)`, display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', borderBottom: '1px solid var(--glass-border)' }}>
                    <cat.icon size={48} color={cat.color} style={{ opacity: 0.9, filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }} />
@@ -477,52 +470,159 @@ export function StudentDashboard() {
 
       {/* Career Path Details Modal */}
       {selectedPath && createPortal(
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }} onClick={() => setSelectedPath(null)}>
-           <div className="glass-panel animate-fade-in" style={{ width: '80vw', height: '80vh', overflow: 'hidden', padding: 0, display: 'flex', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }} onClick={() => { setSelectedPath(null); setIsRoadmapView(false); }}>
+           <div className="glass-panel animate-fade-in" style={{ width: isRoadmapView ? '70vw' : '80vw', height: '80vh', overflow: 'hidden', padding: 0, display: 'flex', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }} onClick={e => e.stopPropagation()}>
               
-              {/* Modal Left / Banner */}
-              <div style={{ flex: '0 0 40%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: `linear-gradient(135deg, ${selectedPath.color}40, ${selectedPath.color}10)`, borderRight: '1px solid var(--glass-border)', padding: '3rem' }}>
-                <div style={{ width: '120px', height: '120px', borderRadius: '50%', backgroundColor: `${selectedPath.color}20`, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '2rem', border: `1px solid ${selectedPath.color}40` }}>
-                  <selectedPath.icon size={60} color={selectedPath.color} />
+              {!isRoadmapView ? (
+                <>
+                  {/* Modal Left / Banner */}
+                  <div style={{ flex: '0 0 40%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: `linear-gradient(135deg, ${selectedPath.color}40, ${selectedPath.color}10)`, borderRight: '1px solid var(--glass-border)', padding: '3rem' }}>
+                    <div style={{ width: '120px', height: '120px', borderRadius: '50%', backgroundColor: `${selectedPath.color}20`, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '2rem', border: `1px solid ${selectedPath.color}40` }}>
+                      <selectedPath.icon size={60} color={selectedPath.color} />
+                    </div>
+                    <h2 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', textAlign: 'center', whiteSpace: 'normal', padding: '0 1rem' }}>{selectedPath.title}</h2>
+                    <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <span>{selectedPath.role} Group</span>
+                      <span>•</span>
+                      <span>{selectedPath.jobs}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Modal Right / Content */}
+                  <div style={{ flex: '1', display: 'flex', flexDirection: 'column', padding: '4rem', overflowY: 'auto' }}>
+                    <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>About this Path</h3>
+                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '2rem', fontSize: '1.1rem' }}>{selectedPath.description}</p>
+                    
+                    <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                      <div className="glass-panel" style={{ flex: 1, padding: '1.5rem', textAlign: 'center', backgroundColor: 'var(--bg-tertiary)' }}>
+                          <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>Avg. Salary Range</div>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: selectedPath.color }}>{selectedPath.salary}</div>
+                      </div>
+                      <div className="glass-panel" style={{ flex: 1, padding: '1.5rem', textAlign: 'center', backgroundColor: 'var(--bg-tertiary)' }}>
+                          <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>Required Effort</div>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>6-8 Months</div>
+                      </div>
+                    </div>
+
+                    <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Key Skills Required</h3>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: 'auto' }}>
+                      {selectedPath.skills.map((skill, i) => (
+                          <span key={i} style={{ padding: '0.5rem 1rem', backgroundColor: `${selectedPath.color}20`, color: selectedPath.color, border: `1px solid ${selectedPath.color}40`, borderRadius: 'var(--radius-full)', fontSize: '0.875rem', fontWeight: 600 }}>{skill}</span>
+                      ))}
+                    </div>
+                    
+                    <button className="hover-brightness" onClick={() => setIsRoadmapView(true)} style={{ width: '100%', padding: '1.25rem', backgroundColor: selectedPath.color, color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontWeight: 'bold', fontSize: '1.15rem', cursor: 'pointer', transition: 'var(--transition)', marginTop: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                      <Play size={20} fill="#fff" /> Enroll in Career Track
+                    </button>
+                  </div>
+                </>
+              ) : (
+                /* Roadmap View */
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-primary)', overflow: 'hidden' }}>
+                    {/* Roadmap Header */}
+                    <div style={{ padding: '2rem 3rem', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: `linear-gradient(to right, ${selectedPath.color}15, transparent)` }}>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: selectedPath.color, marginBottom: '0.25rem' }}>
+                                <selectedPath.icon size={24} />
+                                <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.85rem' }}>Career Roadmap</span>
+                            </div>
+                            <h2 style={{ fontSize: '1.75rem', fontWeight: 700 }}>{selectedPath.title}</h2>
+                        </div>
+                        <button 
+                            onClick={() => setIsRoadmapView(false)}
+                            style={{ padding: '0.75rem 1.25rem', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', borderRadius: 'var(--radius-md)', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                            <ChevronLeft size={18} /> Back to Info
+                        </button>
+                    </div>
+
+                    {/* Flowchart Area */}
+                    <div style={{ flex: 1, padding: '3rem', overflowY: 'auto', position: 'relative' }}>
+                        <div style={{ maxWidth: '800px', margin: '0 auto', position: 'relative' }}>
+                            {/* Vertical connecting line */}
+                            <div style={{ position: 'absolute', left: '40px', top: '20px', bottom: '20px', width: '3px', backgroundColor: `${selectedPath.color}30`, borderRadius: '3px' }} />
+                            
+                            {/* Roadmap Steps */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+                                {selectedPath.roadmap.map((step, idx) => (
+                                    <div key={idx} className="animate-fade-in" style={{ display: 'flex', gap: '2rem', position: 'relative', opacity: 0, animation: `fadeIn 0.5s ease forwards ${idx * 0.1}s` }}>
+                                        {/* Step Circle/Icon */}
+                                        <div style={{ width: '80px', height: '80px', flexShrink: 0, borderRadius: '50%', backgroundColor: idx === 0 ? selectedPath.color : 'var(--bg-tertiary)', border: `4px solid ${idx === 0 ? 'var(--bg-primary)' : `${selectedPath.color}30`}`, display: 'flex', justifyContent: 'center', alignItems: 'center', color: idx === 0 ? '#fff' : 'var(--text-primary)', zIndex: 2, boxShadow: idx === 0 ? `0 0 20px ${selectedPath.color}50` : 'none' }}>
+                                            <span style={{ fontSize: '1.25rem', fontWeight: 800 }}>{idx + 1}</span>
+                                        </div>
+                                        
+                                        {/* Step Content */}
+                                        <div className="glass-panel" style={{ flex: 1, padding: '1.5rem 2rem', backgroundColor: idx === 0 ? `${selectedPath.color}10` : 'var(--bg-tertiary)', borderColor: idx === 0 ? `${selectedPath.color}40` : 'var(--glass-border)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                                <h4 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>{step.title}</h4>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: selectedPath.color, backgroundColor: `${selectedPath.color}20`, padding: '0.25rem 0.75rem', borderRadius: 'var(--radius-full)' }}>{step.duration}</span>
+                                            </div>
+                                            <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.95rem', lineHeight: 1.5 }}>{step.desc}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Bottom Action */}
+                    <div style={{ padding: '2rem 3rem', borderTop: '1px solid var(--glass-border)', textAlign: 'center' }}>
+                         <button className="hover-brightness" style={{ width: '100%', maxWidth: '400px', padding: '1rem', backgroundColor: selectedPath.color, color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer' }}>
+                             Begin First Module
+                         </button>
+                    </div>
                 </div>
-                <h2 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', textAlign: 'center', whiteSpace: 'normal', padding: '0 1rem' }}>{selectedPath.title}</h2>
-                <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <span>{selectedPath.role} Group</span>
-                  <span>•</span>
-                  <span>{selectedPath.jobs}</span>
-                </div>
+              )}
+              
+              {/* Close Button */}
+              <button onClick={() => { setSelectedPath(null); setIsRoadmapView(false); }} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', backgroundColor: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', zIndex: 10 }}>
+                ✕
+              </button>
+           </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Category Details Modal */}
+      {selectedCategory && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }} onClick={() => setSelectedCategory(null)}>
+           <div className="glass-panel animate-fade-in" style={{ width: '60vw', maxWidth: '800px', maxHeight: '80vh', overflow: 'hidden', padding: 0, display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }} onClick={e => e.stopPropagation()}>
+              
+              {/* Modal Header */}
+              <div style={{ width: '100%', height: '160px', background: `linear-gradient(135deg, ${selectedCategory.color}40, ${selectedCategory.color}10)`, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative', borderBottom: '1px solid var(--glass-border)' }}>
+                 <selectedCategory.icon size={50} color={selectedCategory.color} style={{ opacity: 0.9, filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))', marginBottom: '0.5rem' }} />
+                 <h2 style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{selectedCategory.title}</h2>
+                 <p style={{ color: 'var(--text-muted)' }}>{selectedCategory.count} Courses available</p>
               </div>
               
-              {/* Modal Right / Content */}
-              <div style={{ flex: '1', display: 'flex', flexDirection: 'column', padding: '4rem', overflow: 'hidden' }}>
-                 <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>About this Path</h3>
-                 <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '2rem', fontSize: '1.1rem' }}>{selectedPath.description}</p>
+              {/* Modal Content */}
+              <div style={{ flex: '1', display: 'flex', flexDirection: 'column', padding: '2.5rem', overflowY: 'auto' }}>
+                 <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Popular inside {selectedCategory.title}</h3>
                  
-                 <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                   <div className="glass-panel" style={{ flex: 1, padding: '1.5rem', textAlign: 'center', backgroundColor: 'var(--bg-tertiary)' }}>
-                      <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>Avg. Salary Range</div>
-                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: selectedPath.color }}>{selectedPath.salary}</div>
-                   </div>
-                   <div className="glass-panel" style={{ flex: 1, padding: '1.5rem', textAlign: 'center', backgroundColor: 'var(--bg-tertiary)' }}>
-                      <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>Required Effort</div>
-                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>6-8 Months</div>
-                   </div>
-                 </div>
-
-                 <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Key Skills Required</h3>
-                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: 'auto' }}>
-                   {selectedPath.skills.map((skill, i) => (
-                      <span key={i} style={{ padding: '0.5rem 1rem', backgroundColor: `${selectedPath.color}20`, color: selectedPath.color, border: `1px solid ${selectedPath.color}40`, borderRadius: 'var(--radius-full)', fontSize: '0.875rem', fontWeight: 600 }}>{skill}</span>
+                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                   {getCategorySpecificCourses(selectedCategory).map(mockCourse => (
+                     <div key={mockCourse.id} className="glass-panel" style={{ padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+                        <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', backgroundColor: `${selectedCategory.color}20`, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                           <selectedCategory.icon size={24} color={selectedCategory.color} />
+                        </div>
+                        <div>
+                           <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{mockCourse.title}</div>
+                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{mockCourse.duration} • <span style={{ color: 'var(--accent-primary)' }}>Beginner</span></div>
+                        </div>
+                     </div>
                    ))}
                  </div>
-                 
-                 <button className="hover-brightness" style={{ width: '100%', padding: '1.25rem', backgroundColor: selectedPath.color, color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontWeight: 'bold', fontSize: '1.15rem', cursor: 'pointer', transition: 'var(--transition)', marginTop: '2rem' }}>
-                   Enroll in Career Track
+
+                 <button className="hover-brightness" onClick={() => {
+                   setSelectedCategory(null);
+                   navigate(`/student/category/${encodeURIComponent(selectedCategory.title)}`);
+                 }} style={{ width: '100%', padding: '1rem', backgroundColor: selectedCategory.color, color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontWeight: 'bold', fontSize: '1.05rem', cursor: 'pointer', transition: 'var(--transition)', marginTop: 'auto' }}>
+                   Browse all {selectedCategory.title} courses
                  </button>
               </div>
               
               {/* Close Button */}
-              <button onClick={() => setSelectedPath(null)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', backgroundColor: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+              <button onClick={() => setSelectedCategory(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', backgroundColor: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
                 ✕
               </button>
            </div>
